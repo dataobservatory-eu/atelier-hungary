@@ -1,0 +1,35 @@
+---
+title: "Névváltozatok"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+library(readxl)
+
+```
+
+Alternatív nevek és azonosítók kezelése.
+
+-   Name title (preferred name) személyekre
+
+-   Alternatív névváltozatok (például Franz, Ferencz és Ferenc)
+
+-   Name title (preferred name) intézményi névre
+
+-   Alternative names (magyar alternatív írásmód, névváltozat, német név, stb.)
+
+-   Name title (preferred name) a műteremre, mint egy épületen, címen belüli egységre.
+
+-   Name title magyarul egyelőre, de majd lesz mondjuk angol is.
+
+Az adatbázisban gyakran ugyanaz a személy, intézményi név vagy műterem több névváltozatban szerepel, ezek részben amiatt vannak, hogy az évek, évtizedek alatt a műterem költözött, és akár a helyesírás is változott.
+
+```{r}
+readxl::read_excel(file.path("data-raw", "alternate_name_titles.xlsx"))
+```
+
+Azt gondolom, hogy jelenleg nem cél az egységesítés, csak a táblázat szerkezetének javítása. Tehát az eredeti cím mező legyen meg, és legyen legalább egy intézményi és műterem név és alternatív névnek helye. Ha egy sorban nincsen alternatív név, nem számít, és az alternatív nevek ismétlődése sem.
+
+A preferrált névváltozat meghatározása véleményem szerint Bognár Katalin és a főosztálya feladata. A mi dolgunk a jelenleg mező megfelelő átalakítása névváltozatokra, és egyelőre csak annak rögzítése, hogy minden névváltozat megfelelő oszlopba kerüljön *legalább egyszer*. A preferrált nevekre Anna tehet javaslatot, de ezeket majd úgyis a kurátornak kell ellenőriznie.
