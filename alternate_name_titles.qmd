@@ -1,8 +1,10 @@
 ---
 title: "Névváltozatok"
-format: html
+format: gfm
 editor: visual
 ---
+
+Excel táblázat: \[[data-raw/alternate_name_titles.xlsx](https://github.com/dataobservatory-eu/atelier-hungary/blob/main/data-raw/alternate_name_titles.xlsx)\](<https://github.com/dataobservatory-eu/atelier-hungary/blob/main/data-raw/alternate_name_titles.xlsx>)
 
 ```{r}
 library(here)
