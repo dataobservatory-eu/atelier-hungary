@@ -1,0 +1,543 @@
+% naplo_SzGy.txt
+
+State, as of on#2024-03-28:
+- I worked on compatibility problems between O_R and Linux tools etc. Now seems to be solved.
+- I worked on col "további inf." - I managed some aspects of links, but then switched to another col-
+- I worked on col "TÁRGY" (buildings/houses). I extracted info on building size, then started to look at functionality of buildings. This needs a hierarchical vocabulary of buildings types to simplify statements, I hope I am on the right track.
+
+
+- this file is best seen in GVim editor, using the ':set fdm=marker' command because Iuse a hierarchy of so-called folds to encapsulate text that belongs together. 
+- indented lines are subordinate
+
+- abbreviations in this document:
+   - D[ ]D == some discussion
+   - Openrefine == O_R
+   - col == column
+   - nr == number
+   - ! == necessity
+   - Vilber and Zorin: two PCs I work on in connection with these matters
+
+
+- some general rules for making dirty tables tidy:
+   - original cols are not modified 
+   - new cols !have "_" in their names, to keep them distinct
+   - keep row numbers pristine 
+
+- from the original source file FI#C:\Users\ottpe\OneDrive\today\DS\SzGy\BP100_szupertabla.xlsx on#2024-03-10 and on:
+
+
+- table indexing for export as TSV{{{
+   - why? - to allow access to Awk, Grep and others.
+   - plan: put structural (line nr) info into the table so that it can be later
+     exported
+      - added a col to the end and named it as "orig_ln" in Calc, saved this
+	table as
+	C:\Users\ottpe\OneDrive\today\DS\SzGy\BP100_szupertabla_noquote.xlsx;
+      - saved above as
+	C:\Users\ottpe\OneDrive\today\DS\SzGy\BP100_szupertabla_noquote.csv via
+	"Mentés másként" - CSV and opting for TAB as delimiter and nothing as
+	"Karakterlánc elválasztó", saving "megjelenés szerint":   
+	 - problem01: more lines in CSV than rows in original file, perhaps
+	   because line breaks within original text, starting from row nr. 16,
+	   as shown by Gawk counting NF: '$ gawk -F"\t" '{if(NF != 18) print
+	   NR, $0}'
+	    - SOLUTION: simply mark all cells top left in original table in
+	      Calc, copy-paste into Vim saved as
+	      C:\Users\ottpe\OneDrive\today\DS\SzGy\BP100_szupertabla_copypaste.tsv
+}}}
+
+- problem02: not easy to filter for color, {{{
+   - clue maybe: https://de.openoffice.info/viewtopic.php?t=63163
+   - more prospective is using Excel - but I do not have Excel!!
+}}}
+- Exploring BP100_szupertabla_copypaste.tsv{{{
+  on#2024-03-11 - 12 - 16 -...
+
+- it is very similar to the original XLSX file, so can be used. Its $18 equals the
+  original XLSX row nr everywhere but the 1st row: Awk 'if(NR != $18)'
+
+- empty $17 '($17 ~ "^$")': 636
+- replaced TABs with "|" for better visibility
+- cells with just spaces: 4 these spaces were deleted, then field number
+  checked again
+
+- problem03: when opened this TSV in O_R, it behaved strange, some rows were lost, aft
+  row 570, some collapsed - why??
+- also, when I tried to open the original XLSX, the system froze, I had to do a
+  restart of Zorin
+- Then converted "|" separators back to "\t" for comparison with O_R results
+- Then I went back to BP100_szupertabla_noquote.csv to mend it manually using
+  Awk: 'gawk -F"\t" '{if(NF != 18) print NR,NF}''
+   - when I deleted linebreaks at the end of line it became like the
+     BP100_szupertabla_copypaste.tsv version. So I did not finish the manual
+     operation, returned to BP100_szupertabla_copypaste.tsv as the best
+     version.
+
+- mainly because of problem03 above: D[ derivant tables (TSV,CSV) were put
+  aside, used O_R with the XLSX as seen below for further work, however, do not
+  abandon the idea! ]D
+
+}}}
+
+- exploring further in O_R and other tools:{{{
+
+- exported TSVs with linebreaks: problem01 in O_R{{{
+- I tried the noquote.xlsx, in O_R, it went well, 1006 recs, 1043 rows, so this
+  is good also:
+   - Text transform on 41 cells in column "további inf.": value.trim()
+   - export to /home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx.tsv
+     using "custom tabular"(unselected no-name columns, other options left
+     default)
+      - D[ this TSV above had again too much rows, so I deleted it. ]D
+}}}
+- Handling O_R row vs O_R record nr problem04:{{{
+- problem04: line breaks within one cell is one thing (see problem01), but O_R
+  treats empty 1st cols not as separate rows but as cells belonging to a record
+  numbered by a nonempty cell above. The empty cells in 1st col "adatmélység"
+  do not seem to represent intention to group by records, e.g. it has values
+  "??" and similar. SOLUTION: col "adatmélység": Text facet "null" (39 db):
+  Edit cells / Transform -> "n.d", short for "not determined". After this,
+  record nr became the same as that of row nr. on#2024-03-17
+}}}
+- Handling the line break problem01:{{{
+  it is still a problem as exporting the table would produce extra lines with
+  wrong field numbers per row. Export to software outside Excel is important
+  because Excel does not excel in several aspects.  SOLUTION: in O_R: new
+  temporary logical col acc 'value.contains(/\n/)' and in the resulting Text
+  facet (16 rows): Edit cells/transform col "tov-inf_noting" with
+  'value.replace(/\n/," *** ")'. Then I deleted the temporary logical col.
+
+D[ ?!/on#2024-03-22: is now TSV export possible? ]D
+}}}
+
+- col "forrás" and col "további inf." : manage links:{{{
+
+- links are part of cols "forrás" and "további inf." == "tov-inf" cols
+- their nr, their base(host), links themselves should be in a separate cols -
+  they are placed after "..._noting" cols in this order
+
+- useful columns for links, actually done, see "used in" below, "|" explain by
+  pointing code above:
+
+   $ value.find(/http[^ \n]*/).length()  # how many links/cell; used in "_link_nr" cols
+   # |self |->array            |/array
+   #            |own-RE/link, irrespective of its success.  pair of '/' is for RE
+   #                    |because linebreaks were in some cells after a link
+
+      - use Facet/Custom text facet 'value > 0' to filter cells having links for above cols
+
+   $ forEach(value.find(/http[^ \n]*/), v, v.parseUri().parseJson().host).join("|")  # gets the link host, used in "_link_host" cols
+   # |iterates over array                    |->Json-O              |->Json-"host"/URI
+   #                                                                      |sep-char
+
+   $ forEach(value.find(/http[^ ]*/), v, "<"+v+">").join("|")  # lists links enclosed in "<>", sep by "|", but the indexed version:
+   $ forEachIndex(value.find(/http[^ \n]*/), i, v, "("+(i + 1) + ") <" + v + ">").join(" | ")  # ... was recently used in "_link" cols
+   #                                                    |counter written
+
+
+- How check URL functionality??:
+R-code, got from Stackoverflow:
+'''
+urls <-   c("http://www.amazon.com",
+            "http://this.isafakelink.biz",
+            "https://stackoverflow.com")
+
+valid_url <- function(url_in,t=2){
+  con <- url(url_in)
+  check <- suppressWarnings(try(open.connection(con,open="rt",timeout=t),silent=T)[1])
+  suppressWarnings(try(close.connection(con),silent=T))
+  ifelse(is.null(check),TRUE,FALSE)
+}
+'''
+- above did not work with host only, but did with scheme+host
+
+
+- exported the link-containing cols to:
+/home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx.tsv
+   - strange!: every row is exported...
+   - $1 and $3 are the URL hosts
+   - $2 and $4 are the actual links
+- this is a scrutiny by Awk: the 2nd Awk splits "|"-containing string into
+  array a then prints its values out: $ gawk -F"\t" '{if($1 !~ /^$/) print $1}'
+  '/home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx.tsv' | sort |
+  uniq | gawk '{if($0 ~ /|/) split($0,a,"|") ;for (i in a) print a[i]}' | sort
+  | uniq > tov-inf_link_scheme_host.tsv
+
+- later I only exported 1 col (Custom tabular...), but again, all rows are
+  exported. the above Gawk could be used
+
+> tovInfLinkSchemeHost <- read_lines("tov-inf_link_scheme_host.tsv")
+> sapply(tovInfLinkSchemeHost[31:40], valid_url)  # 31. olx.hu makes us wait forever. !!a timeout option within the custom function
+
+
+> z=2; lst1 <- tovInfLinkSchemeHost[z:108] ;for (i in lst1) {print(i); if(valid_url(i) == FALSE) {print(paste("   above is invalid:", z))}; z=z+1} 
+
+- not finished yet!!
+
+
+}}}
+
+- col "TÁRGY":{{{
+
+- on#2024-03-22: ×dant suggested this column to work on. So, this is new - again.
+- on#2024-03-25: I looked at it outside O_R:{{{
+   -(using an exported TSV file) with Awk:
+   - gawk -F"\t" '{print $14}'
+     'C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv'
+      - eclectic as the many other cols, the top 10: 9 emeletes épület
+	 - there are HÁZ types, e.g. "épület", "ház"
+	 - there may be function? "lakó"
+	 - it has nr "emelet"
+     20 Lakóház
+     24 emeletes ház
+     29 egyemeletes ház
+     34 kétemeletes ház
+     48 földszintes ház
+     50 háromemeletes ház
+     72 ötemeletes ház
+     76 négyemeletes ház
+    123 lakóház
+    238
+   - for the most common, empty, col , the main problem maybe that the TSV has
+     1119 rows, apparently due to in-field linebreaks. Such problem (problem01)
+     had already been solved before. For now, continue with the XLSX in O_R.
+}}}
+- O_R history for col "TÁRGY":
+
+- Create new column tárgy_noting based on column TÁRGY by filling 885 rows with
+  grel:value; the rest of cells were empty; -> 329 facets; GRAMMAR: new items
+  are between "<" and ">", solely in the new cols of course
+
+- "ház" -> "épület"{{{
+- Text transform on 65 cells in column tárgy_noting:
+  grel:value.replace("épület","<é>")
+   - !!handle multiple többesszám later
+- Fill the empty cells: Text transform on 158 cells in column tárgy_noting:
+  grel:"<é>"   
+   - (épület) serves a general or default type; -> 330 facets
+- "ház" -> "<é>" everywhere - seems risky but I think they are synonymous and
+  recognisable in compound names: Text transform on 662 cells in column
+  tárgy_noting: grel:value.replace("ház", "<é>"); -> 320 facets
+- use Clustering + merging to further reduce complexity: GRAMMAR: "+" denotes
+  more types together, F<...> is function, S<...> is size, a nr followed by "-"
+  can be before it: Mass edit 261 cells in column tárgy_noting; -> 311 facets;
+  the "emelet" idea pursued thereafter to completion with replace() and
+  singular editing; 
+}}}
+
+- GRAMMAR suggestion: W<...> denotes "with, as part of sth"; N<...> ==
+  proprietary name
+
+- col "tárgy_noting" partitioning to separate size from the rest:{{{
+   - Create new column tárgy_noting3 based on column tárgy_noting by filling 1 043
+     rows with grel:value.replace(/[?\d]-S<[^>]+>/, "")  # col "tárgy_noting" minus
+     "emelet"
+   - Create new column tárgy_height based on column tárgy_noting by filling 1 043
+     rows with grel:forEach(value.find(/([?\d]-S<[^>]+>)/),v,v).join("|")
+      - thus, I parted col "tágy_noting", which col was removed next
+      - now 288 facets
+}}}
+
+- delineating functionality "F<...>"{{{
+   - tentative categories like "gyár", "lakó", "nyaraló". 
+      - Later I need to expand and categorize and make hierarchy and define all
+	of these!!
+- on Vilber:
+   - I continued with a copy:
+     C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv
+     :
+	- Text transform on 15 RE#"gyár" but not orig_ln=48 cells in column
+	  tárgy_noting: grel:value.replace(/gyár/, "F<gyár>")
+	- !!later F<gyár> can be characterized further if more data there
+
+- on Zorin:
+- Text transform on 32 cells in column tárgy_noting: grel:value.replace(/lakó/,
+  "F<lakó>")
+- Text transform on 2 cells in column tárgy_noting: grel:value.replace(/Lakó/,
+  "F<lakó>")value
+  - somehow case insensitivity does not work as expected, that is why "Lakó"
+    above; case sensitivity must be checked to make it work!
+- Text transform on 17 cells in column tárgy_noting:
+  grel:value.replace("nyaraló", "F<nyaraló>")
+}}}
+
+- outside O_R work:{{{
+- problem01 again: I noticed on#2024-03-26 that several cols, not just col
+  "tov-inf_noting", see its handling before, have line breaks in them. 
+   - using Awk and Vim, I cleared this issue manually this time, because breaks
+     are in various cols and the previous transaction in O_R was not
+     thorough(why??, surely I did sth wrongly). The line breaks were always
+     unnecessary, anyway, some of them were replaced by " *** " to show the
+     scars, similarly to the earlier method in O_R. The Awk to show bad rows
+     rerun as many times as needed: $ gawk -F"\t" '{if(NF != 28) print NR, NF}'
+     'C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv'
+     | head
+      - in Vim it greatly helped that the last col "orig_ln" has to be equal to
+	the physical col nr.
+      - with Awk I checked the modified table's structure; I deleted the last
+	two empty rows, so there are 1042 rows now in
+	FI#BP100-szupertabla-noquote-xlsx.tsv
+      - the 28 cols as of on#2024-03-27:
+adatmélység
+építés ideje
+hasz.v. eng.
+ép.eng.
+ÉPÍTTETŐ, TULAJDONOS
+KER.
+irszám.
+KO_RABELI UTCA
+házszám
+MAI CÍM
+Google koordináta
+korabeli hrsz
+Mai hrsz.
+TÁRGY	14
+tárgy_height	15
+tárgy_noting3	16
+ÉPÍTÉSZ, ÉPÍTŐMESTER, KŐMŰVESMESTER, ÁCSMESTER, ASZTALOSMESTER
+forrás
+forrás_noting
+forrás_link_nr
+forrás_link_host
+forrás_link
+további inf.
+tov-inf_noting
+tov-inf_link_numbered
+tov-inf_link_scheme-host
+tov-inf_link_nr
+orig_ln
+
+ - the Awk to check, e.g.:
+ $ gawk -F"\t" '{print $14"|"$15"|"$16}' 'C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv' | head
+}}}
+
+   - D[ now a TSV is able to replace the former XLSX, so I continue with TSVs, working either inside or outside O_R ]D:
+
+- O_R work with BP100-szupertabla-noquote-xlsx.tsv:
+   - accepted several Clustering suggestions -> 279 facets
+
+- col TÁRGY functions again:{{{
+- the "F<>" notation work so far was only preliminary, now the hard work:
+
+- this gets what we have pushed to F<...> so far. Too few:
+$ gawk -F"\t" '{if($16 != "") print $16}' 'C:\Users\palar\Downloads\BP100-szupertabla-noquote-xlsx-tsv-tsv.tsv' | grep -o "F<[^>]\+>" | sort | uniq -c
+ill.
+
+- and this what we have ahead: 687 length>=3 letter words (the 2-letter ones are mostly fragments, some are functional RE#"\b...\b":
+
+Só
+id
+db	this is quantity - how handle??!!
+
+
+$ gawk -F"\t" '{if($16 != "") print $16}'  'C:\Users\palar\Downloads\BP100-szupertabla-noquote-xlsx-tsv-tsv.tsv' | grep -o "\w\w\w\+" | sort | uniq -c | sort -n > 'C:\Users\palar\Downloads\col16.txt'
+   - I decorated the above file, selecting those words that are connected to function or contain a part denoting function. In the end, I'd like to have only one functional notation per cell. Remember, in this col everything is supposed to be a building "<é>", but "<é>" itself has neutral functionality:
+$ gawk -F"\t" '{if($0 ~ /\t.*F/) print $1}' 'C:\Users\palar\Downloads\col16.txt'
+      1 Bagolyvár{{{
+      1 CEU
+      1 Cukrászda
+      1 Egyetem
+      1 Fabank
+      1 Fiúiskola
+      1 Gim
+      1 Gyakorlógimnázium
+      1 Gyakorlógimnáziuma
+      1 Hadiárvaotthon
+      1 Hajóállomás
+      1 Hostel
+      1 Hotel
+      1 Háza
+      1 Hőerőmű
+      1 Intézet
+      1 Iparbank
+      1 Iroda
+      1 Járadékbank
+      1 Klinika
+      1 Klub
+      1 Kollégium
+      1 Középiskola
+      1 Leányinternátusa
+      1 Malom
+      1 Múzeumhajó
+      1 Nagyáru
+      1 Nyelviskola
+      1 Nyomda
+      1 Otthon
+      1 Otthona
+      1 Palace
+      1 Park
+      1 Sportiskola
+      1 Szálloda
+      1 Technikum
+      1 Vállalat
+      1 Zsinagóga
+      1 ajándékbolt
+      1 autogarage
+      1 bababolt
+      1 bank
+      1 barak
+      1 bérpalota
+      1 center
+      1 cukrászda
+      1 dohánytőzsdéje
+      1 fordrász
+      1 fotószalon
+      1 fürdőtelep
+      1 főgymnasium
+      1 főisk
+      1 gabonaraktár
+      1 garage
+      1 gymnasium
+      1 gépműhely
+      1 ikervilla
+      1 ingatlaniroda
+      1 jégpálya
+      1 kaszárnya
+      1 kerékpárüzlet
+      1 klub
+      1 kollégium
+      1 korcsolyacsarnoka
+      1 kávézó
+      1 könyvtár
+      1 központja
+      1 laboratorium
+      1 lakatosműhely
+      1 lakatosüzem
+      1 lapkiadó
+      1 malátaszárító
+      1 mauzóleum
+      1 munkástelep
+      1 nagykövetség
+      1 népszálló
+      1 palotája
+      1 pavillon
+      1 pezsgőfürdő
+      1 piac
+      1 plébániatemp
+      1 pékműhely
+      1 remíz
+      1 rendel
+      1 rendelő
+      1 rendőrkapitányság
+      1 ruhaüzlet
+      1 siló
+      1 szabóműhelye
+      1 szakorvosi
+      1 szerkesztősége
+      1 szálloda
+      1 székhelye
+      1 szín
+      1 szőrmebolt
+      1 telefonközpont
+      1 templ
+      1 temploma
+      1 tvszék
+      1 vendéglõ
+      1 zálog
+      1 Épületegyüttese
+      1 Étterem
+      1 Üzlet
+      1 élelmiszerbolt
+      1 üzlethelységeket
+      1 üzlettel
+      2 Bíróság
+      2 Galéria
+      2 Isk
+      2 Kollégiuma
+      2 Kávé
+      2 Könyvtár
+      2 Központ
+      2 Múzeum
+      2 Szakiskola
+      2 Takarékpénztár
+      2 Villa
+      2 barakkiskola
+      2 bérvilla
+      2 fürdő
+      2 gimnázium
+      2 kocsiszín
+      2 köz
+      2 lakása
+      2 lakások
+      2 műterem
+      2 nyomda
+      2 parókia
+      2 zsinagóga
+      2 Ált
+      2 állami
+      2 üzemi
+      3 Hivatal
+      3 Szék
+      3 hotel
+      3 kápolna
+      3 kór
+      3 malom
+      3 mozi
+      3 műhely
+      3 szálló
+      3 templom
+      3 vár
+      3 Áru
+      3 étterem
+      4 Leányiskola
+      4 Polgári
+      4 Szakközépiskola
+      4 Szín
+      4 családi
+      4 kislakásos
+      4 kávé
+      4 palota
+      4 udvar
+      4 áru
+      5 Bér
+      5 Gimnázium
+      5 istálló
+      6 víztorony
+      7 Bank
+      7 iroda
+      8 raktár
+     10 iskola
+     11 szék
+     12 Iskola
+     12 Általános
+     12 üzletek
+     15 gyár
+     15 üzletekkel
+     17 nyaraló
+     19 üzlet
+     22 villa
+     31 bér
+    234 lakó
+}}}
+
+
+}}}
+
+
+}}}
+}}}
+
+
+- ?!:{{{
+   - I may need handle multiple URIs within one cell, 
+      - so may get all links into a different row - this is a direction RDBMS...
+
+}}}
+
+- Technical notes O_R:{{{
+   - arrays look good in preview but nothing in the resulting column! SOLUTION: arrays are not printed into cells, only their indexed elements
+   - useful GREL:
+      - value + cells["col_one"].value  # refer to other column
+
+
+useful GRELs:
+cells["tárgy_size"].value
+
+
+
+
+
+}}}
+
+
+
