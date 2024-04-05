@@ -50,3 +50,5 @@ rsconnect/
 _not_included/
 
 /.quarto/
+
+docs/
