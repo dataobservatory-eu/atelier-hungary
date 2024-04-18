@@ -1,0 +1,288 @@
+---
+title: "Fotostudiók"
+format: 
+    html: default
+    pdf: default
+editor: visual
+---
+
+## Fotóstudiók
+
+Ennek a példának a célja, hogy az adatbázis névterét kis, egymáshoz hasonló problémák sorozataként oldjuk meg. Ebben a példában a kéttagú, nyugati névsorrendbe állított, és vesszővel elválasztott neveket tesszük rendbe.
+
+```{r setup}
+require(tidyverse)
+require(readxl)
+require(here)
+library(here)
+here() # a folder kezdő path megkeresése
+fotostudiok <- readxl::read_excel(
+  here('data-raw', 'anna', 'fotostudiok_0.xlsx')
+  ) %>%
+  purrr::set_names(
+    c("rowid", "original_title", "address", "date", "source_table")
+    ) %>%
+  filter ( 
+    # a world táblát kihagyjuk, mert a nevek nagy része nem magyar
+    source_table %in% c("budapest", "hungary")
+    )
+
+## OpenRefineban előkészített adatok hozzáadásához
+fotostudiok_or <- readxl::read_excel(
+  here('data-raw', 'anna', 'fotostudiok_2-xlsx.xls')
+  ) %>%  rename ( source_table = tábla )
+
+names(fotostudiok_or)[1:3] <- c("rowid", "original_title", "name_refine")
+
+```
+
+## Fotográfusok
+
+```{r fotografus}
+fotografus <- fotostudiok %>%
+  mutate ( 
+    name_photographer      = as.character(""), 
+    name_order             = as.character("U"),
+    name_photographer_alt  = as.character(""), 
+    name_order_alt         = as.character("U")  # default: unknown
+  ) %>%
+  select ( source_table, rowid,  original_title, starts_with("name") ) %>%
+  filter ( source_table %in% c("budapest", "hungary") )
+```
+
+A névsorrend később fontos lesz, és ebben a tekintetben sok variációra kell felkészülni.
+
+O = oriental, keleti, magyar, nem állapítottuk meg, hogy hány tagú\
+O1 = oriental, keleti, magyar, egy vezetéknév (az első szó)\
+O2 = oriental, keleti, magyar, két vezetéknév (az első két szó)\
+I = inverted Western, fordított, nyugati, például Sollich, Franz. Néha Bauer Franz, vessző nélkül.\
+I1 = inverted Western, fordított, nyugati, például Sollich, Franz (családnév az első szó)\
+W = Western, nyugati, többnyire német, nem állapítottuk meg, hogy hány tagú\
+W1 =Western, nyugati, egy vezetéknév (az utolsó szó)\
+W2 =Western, nyugati, egy vezetéknév (az utolsó két szó)
+
+Ezekre önálló szabályokat kell felállítani, amelyeket először Open Refineban végzünk el, azután leprogramozzuk a jól bevált szabályokat. Ahogy újabb nevek merülnek fel, újabb szabályokra lehet szükség. Azokat az eseteket, amelyek ritkák, 1-2 alkalommal fordulnak elő, kivételként fogjuk rögzíteni (például háromtagú családnév, stb.)
+
+```{r fotografusok}
+fotografus_2 <- fotografus %>% 
+  left_join ( 
+    fotostudiok_or %>% 
+      select( rowid, source_table, original_title, name_refine), 
+    by = join_by(source_table, rowid, original_title)
+  ) %>%
+  mutate ( name_photographer = if_else(
+    nchar(name_refine)>1,
+    true = stringr::str_trim(name_refine, "both"), 
+    false = "", 
+    missing = "")
+  )
+```
+
+### Oszd meg és uralkodj!
+
+Egy gyakoran sikeres stratégia a rossz minőségű adatok javítására, hogy elszigetelünk aleseteket, és azokat külön oldjuk meg. Például az egyértelműen nyugati (többnyire német, néha olasz vagy más) neveket egyben rendberakjuk.
+
+```{r w1}
+w1 <- fotografus_2 %>% 
+  select ( rowid, source_table, name_photographer ) %>%
+  mutate (  # ha a név ,-re végződik, megjelöljük
+    endcoma = if_else(stringr::str_sub(name_photographer, -1, -1)== ",", 
+                      true  = TRUE, 
+                      false = FALSE, 
+                      missing = FALSE)
+  ) %>%
+  mutate (name_photographer = 
+            if_else(endcoma, # ... és töröljük az utolsó , karaktert
+                    true = stringr::str_sub(name_photographer, 1, -2), 
+                    false = name_photographer, 
+                    missing = "")) %>%
+  mutate ( # megszámoljuk a fennmaradt vesszőket 
+    coma = stringr::str_count(name_photographer, pattern=",")
+    ) %>%
+  mutate (
+    # megszámoljuk a fennmaradt szóközöket
+    space = stringr::str_count(name_photographer, pattern=" ")
+    ) %>% 
+  filter ( coma == 1, space == 1  ) %>% # 1 vessző, 1 szóköz sorok szűrése 
+  mutate ( 
+    # name_1 a vessző előtti rész
+    name_1 = stringr::str_split_i(name_photographer, pattern = ",", i = 1)
+    ) %>% 
+  mutate ( 
+    # name_2 a vessző utáni rész
+    name_2 = stringr::str_split_i(name_photographer, pattern = ",", i = 2)
+    ) %>% 
+  mutate ( # ha a darabolásnál space maradt elől, végül, töröljük
+    name_1 = stringr::str_trim(name_1, "both")
+    ) %>%
+  mutate ( 
+    name_2 = stringr::str_trim(name_2, "both")
+    ) %>%
+  mutate ( 
+    # ha maradt volna space a name_1-ben, az hiba volna
+    space_1 = stringr::str_count(name_1, pattern=" ")
+    ) %>%
+  mutate ( 
+    space_2 = stringr::str_count(name_2, pattern=" ")
+    ) %>%
+  filter ( space_1 == 0, 
+           space_2 == 0 ) %>%  # szerencsére nincsen hibás
+  mutate ( name_order = "W1") %>%
+  mutate ( givenName  = name_2, 
+           familyName = name_1)
+```
+
+```{r w1-nevek-szurotable}
+w1 %>% select ( rowid, name_order, 
+                givenName, familyName, 
+                name_photographer, source_table )
+```
+
+A névterünknek van egy fontos eredménye: az alábbi nevek nyugati keresztnevek. Bár egyes esetekben csak monogrammal rendelkezünk, a nem monogram (nem egy karakter+.) esetben ezek akár szűrőként is használhatók lesznek.
+
+```{r distinct-w-givenName}
+w1 %>% distinct ( givenName )
+```
+
+Az azonos családnevek pedig még több funckiót tölthetnek majd be. 
+
+```{r distinct-w-familyName}
+w1 %>% distinct ( familyName )
+```
+
+A külön megtisztított adatot pedig visszarakjuk a fotografusok táblázatba.
+
+```{r w1-visszaillesztés}
+fotografus_3 <- fotografus_2 %>% 
+  left_join ( w1 %>% 
+                select ( source_table, rowid, name_order) %>%
+                rename ( name_order_w1 = name_order ), 
+                by = join_by(source_table, rowid)
+              ) %>%
+  mutate ( name_order = if_else( 
+    # ha a w1 táblázatban a name_order W1, akkor az U-t átkódoljuk W1-re.
+    name_order_w1 == "W1", 
+    "W1", 
+    name_order)
+           )
+```
+
+## Műtermek
+
+Az eredeti táblázat címsorában szereplő nevek gyakran nem személyek, hanem műtermek nevei. Mivel itt eltérő dolgok, tehát nem Személyek, hanem Műtermek (helyek) neveiről van szó, ezeket külön táblázatba töltjük át.
+
+> Anna ide kéne egy leírás arról, hogy mi utal műterem nevekre.
+
+```{r aterlier}
+muterem_jelzok <- c("studio", "műterem", "fényképészet", 
+                    "szalon", "fényirda", "vállalat", 
+                    "foto", "photo", "atelier" )
+
+atelier <- fotostudiok  %>%
+  filter ( source_table %in% c("budapest", "hungary") ) %>%
+  mutate ( is_atelier = 
+             grepl(pattern=paste(muterem_jelzok, collapse = "|"), 
+                   x = original_title)
+           ) %>%
+  filter ( is_atelier == TRUE ) %>%
+  select ( rowid, source_table, original_title, address )
+```
+
+Nem törvényszerű, hogy egy műteremnek legyen neve, és gyakran a műterem neve nem más, mint a tualjdonos nevéből képzett név: `Szentes Géza fotoszalon`, 	
+`Tihanyi Sándor Kálmán fényirda`.
+
+A célunk az, hogy külön adatbázis táblázatunk legyen a műtermekről, függetlenül attól, hogy van-e nevük, vagy nincsen nevük. Mivel könnyebb olyan dolgokról beszélni, amiknek van nevük, ezért a névtelen műtermeket végül el fogjuk látni egy technikai névvel. Például az a műterem, ahol Andok Lajos dolgozott, ellátható az Andok Lajos műterme névvel. 
+
+Természetesen felvethető az a probléma, hogy egy fotógráfus élete során több műteremben is dolgozott. Ha pontosan tudnánk minden esetben, hogy mettől meddig dolgozott egy helyen `Andok Lajos`, akkor elnevezhetnénk így is a helyet: `Andok Lajos (1913-1927)`.  
+
+> Anna, ide majd kellene még keresni szakirodalmat arról, hogy mikor használunk technikai neveket egy névtérben, és hogyan képezzük őket.
+
+## Társulások
+
+A társulások speciális nevek, amelyeket külön táblázatba kell majd gyűjteni. Itt is célszerű a végleges társulás táblázatot sok kis táblázatból összerakni, vagyis a hasonló problémákat egyről-egyre külön táblázatban megoldani. 
+
+```{r tarsulasok}
+tarsulas_jelzok <- c(" és ", " \\& " , " and", 
+                     " und", " et", " y ", " tsa", 
+                     " társa", "testvére")
+
+titulusok <- c("udv\\. Fényképész", "udv\\.fk", "udv\\.fk\\.", "udv\\. fényképész", "kam fk\\.")
+
+tarsulasok <- fotostudiok  %>%
+  filter ( source_table %in% c("budapest", "hungary") ) %>%
+  mutate ( is_co = grepl(
+    pattern=paste(tarsulas_jelzok, collapse = "|"), 
+    x = tolower(original_title)  ) 
+    ) %>%
+  filter ( is_co == TRUE ) %>%
+  select ( rowid, source_table, original_title, address )  %>% 
+  mutate ( 
+    # name_1 a vessző előtti rész
+    name_photographer_1 = stringr::str_split_i(
+      original_title, pattern = " és ", i = 1)
+    ) %>% 
+  mutate ( 
+    # name_2 a vessző utáni rész
+    name_photographer_2 = stringr::str_split_i(
+      original_title, pattern = " és ", i = 2)
+    ) %>% 
+  mutate (      
+    # a második helyről töröljük a biztosan nem személyneveket
+    name_photographer_2 = if_else(
+      condition = grepl(x = tolower(name_photographer_2), 
+                        pattern="társa|tsa|fiai"), 
+      true = "", 
+      false = name_photographer_2)
+    ) %>%
+  mutate ( 
+    # ezek elég vegyes címsorok, csináljunk helyet a különböző információknak
+    name_photographer_3 = as.character(""), 
+    name_co = as.character(""),
+    name_company = as.character("")
+    ) %>%
+  mutate ( 
+    name_photographer_1 = gsub(pattern=paste(titulusok, collapse="|"), 
+                               replacement = "", name_photographer_1)) %>%
+  mutate ( 
+    name_photographer_2 = gsub(pattern=paste(titulusok, collapse="|"), 
+                               replacement = "", name_photographer_2))
+
+```
+
+
+## Intézményi nevek
+
+Az intézményi neveknek önálló névteret kell alkotni. Ismét próbáljuk majd meg a hasonlót a hasonlókkal, kisebb részletekben megoldani.
+
+```{r cegek}
+ceg_jelzok <- c("company", "co." , "lux", "cie")
+
+cegek <- fotostudiok  %>%
+  filter ( source_table %in% c("budapest", "hungary") ) %>%
+  mutate ( is_company = grepl(pattern=paste(ceg_jelzok, collapse = "|"), 
+                               x = original_title  ) ) %>%
+  filter ( is_company == TRUE ) %>%
+  select ( rowid, source_table, original_title, address ) %>%
+  mutate ( 
+    # ezek elég vegyes címsorok, csináljunk helyet a különböző információknak
+    name_co = as.character(""),
+    name_photographer = as.character(""),
+    name_company = as.character("")
+    )
+```
+
+## Export
+
+```{r export, eval=FALSE}
+writexl::write_xlsx(
+  list(fotografus = fotografus, 
+       fotografus_2 = fotografus_2, 
+       w1 = w1, 
+       fotografus_3 = fotografus_3, 
+       atelier = atelier,
+       tarsulasok = tarsulasok,
+       cegek = cegek),
+  path = here("data-raw", "r-to-excel", "nevter-20240405.xlsx"),
+  col_names = T)
+```
+
