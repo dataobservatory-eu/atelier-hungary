@@ -1,0 +1,48 @@
+---
+title: "Wikibase"
+format: html
+editor: visual
+---
+
+## Quarto
+
+| Wikidata | Wikibase | Col3 |
+|------|------|--------------------------------------------|
+| Q30249126    |  Q28 | Wikidata property for ontology mapping     |
+|              |      |      |
+|   Q5   |  Q27    |  Real persons who live or are assumed to have lived*.    |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+
+*Q5 is widely used in Wikidata, but it is not an exact match with our definition. The differences are negligible for our purposes.
+
+| Wikidata | Wikibase | Col3 |
+|------|------|--------------------------------------------|
+| P1709   |  Q28 | Wikidata property for ontology mapping     |
+| P279    | P70 | subclass of |
+| P735    | P71| given name |
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
