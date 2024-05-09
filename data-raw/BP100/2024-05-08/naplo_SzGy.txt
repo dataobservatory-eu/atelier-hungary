@@ -1,0 +1,819 @@
+% naplo_SzGy.txt
+
+- State summaries:{{{
+
+State, as of on#2024-03-28:{{{
+- I worked on compatibility problems between O_R and Linux tools etc. Now seems to be solved.
+- I worked on col "további inf." - I managed some aspects of links, but then switched to another col-
+- I worked on col "TÁRGY" (buildings/houses). I extracted info on building size, then started to look at functionality of buildings. This needs a hierarchical vocabulary of buildings types to simplify statements, I hope I am on the right track.
+}}}
+State, as of on#2024-04-07
+
+
+
+}}}
+
+- General remarks:{{{
+
+- this file is best seen in GVim editor, using the ':set fdm=marker' command because Iuse a hierarchy of so-called folds to encapsulate text that belongs together. 
+- indented lines are subordinate
+
+- abbreviations in this document:
+   - D[ ... ]D == some discussion
+   - Openrefine == O_R
+   - col == column
+   - nr == number
+   - ! == necessity, can be multiple
+   - Vilber and Zorin: two PCs I work on in connection with these matters
+
+
+- some general rules for making dirty tables tidy:
+   - original cols are not modified 
+   - new cols !have "_" in their names, to keep them distinct. No added names contain spaces, begin with nr and in general do follow camelcase or snakecase rules
+   - with filenames keep an eye on O_R's bad behaviour of adding spaces into
+     filenames if they exist already: "... (nr)"
+   - keep row numbers pristine
+}}}
+
+- original source dir and file: FI#C:\Users\ottpe\OneDrive\today\DS\SzGy\BP100_szupertabla.xlsx on#2024-03-10 and on:
+
+- cross-platform compatibility {{{
+- table indexing for export as TSV{{{
+   - why? - to allow access by Awk, Grep and other Linux tools, to be
+     cross-platform, between-software compatibility.
+   - plan: put structural (line nr) info into the table so that it can be later
+     exported and its lines referenced
+      - added a col to the end and named it as "orig_ln" in LibreOfficeCalc,
+	saved this table as FI#BP100_szupertabla_noquote.xlsx;
+      - saved above as FI#BP100_szupertabla_noquote.csv via "Mentés másként" -
+	CSV and opting for TAB as delimiter and nothing as "Karakterlánc
+	elválasztó", saving "megjelenés szerint":   
+}}}
+	 - problem01:{{{
+	    - more lines in CSV than rows in original XLSX file (1042), perhaps
+	      because line breaks within original text, starting from row nr.
+	      16, as shown by Gawk counting NF: '$ gawk -F"\t" '{if(NF != 18)
+	      print NR, $0}'
+	    - SOLUTION: simply mark all cells top left in original table in
+	      Calc, copy-paste into Vim saved as
+	      FI#BP100_szupertabla_copypaste.tsv
+}}}
+- Exploring FI#BP100_szupertabla_copypaste.tsv outside O_R:{{{
+   - on#2024-03-11 - 12 - 16 -...
+   - it is very similar to the original XLSX file, so can be used. Its $18
+     equals the original XLSX row nr everywhere but the 1st row as checked by
+     Awk 'if(NR != $18)'
+   - empty $17 '($17 ~ "^$")': 636
+   - I replaced TABs with "|" for better visibility
+   - cells with just spaces: 4 these spaces were deleted, then field number
+     checked again
+}}}
+- problem03 when in O_R:{{{
+- Exploring FI#BP100_szupertabla_copypaste.tsv in O_R: 
+   - problem03: when opened this TSV in O_R, it behaved strange, some rows were
+     lost, aft row 570, some collapsed - why??
+   - also, when I tried to open the original XLSX, the system froze, I had to
+     do a restart of Zorin
+}}}
+- various trials around the problem03:{{{
+- Then I converted "|" separators back to "\t" using Awk, for comparison with
+  O_R results
+- Then I went back to FI#BP100_szupertabla_noquote.csv to mend it manually using
+  Awk: 'gawk -F"\t" '{if(NF != 18) print NR,NF}''
+   - when I deleted linebreaks at the end of line it became like the
+     FI#BP100_szupertabla_copypaste.tsv version. So I did not finish the manual
+     operation, returned to BP100_szupertabla_copypaste.tsv as the best
+     version.
+
+- mainly because of problem03 above: D[ derivant tables (TSV,CSV) were put
+  aside, plan to use O_R with the XLSX as seen below for further work, however,
+  do not abandon the idea! ]D
+}}}
+- exported TSVs with linebreaks: back to problem01 in O_R{{{
+- I tried the FI#...noquote.xlsx, in O_R, it went well, 1006 recs, 1043 rows, so this
+  is good also:
+   - Text transform on 41 cells in column "további inf.": value.trim()
+   - export to /home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx.tsv
+     using "custom tabular"(unselected no-name columns, other options left
+     default)
+      - D[ this TSV above had again too much rows, so I deleted it. ]D
+}}}
+- Handling O_R row vs O_R record nr problem04:{{{
+- problem04: line breaks within one cell is one thing (see problem01), but O_R
+  treats empty 1st cols not as separate rows but as cells belonging to a record
+  numbered by a nonempty cell above. The empty cells in 1st col "adatmélység"
+  do not seem to represent intention to group by records, e.g. it has values
+  "??" and similar. SOLUTION: col "adatmélység": Text facet "null" (39 db):
+  Edit cells / Transform -> "n.d", short for "not determined". After this,
+  record nr became the same as that of row nr. on#2024-03-17
+}}}
+- Handling the line break problem01 again in O_R:{{{
+  it is still a problem as exporting the table would produce extra lines with
+  wrong field numbers per row. Export to software outside Excel is important
+  because Excel does not excel in several aspects.  SOLUTION: in O_R: new
+  temporary logical col acc 'value.contains(/\n/)' and in the resulting Text
+  facet (16 rows): Edit cells/transform col "tov-inf_noting" with
+  'value.replace(/\n/," *** ")'. Then I deleted the temporary logical col.
+
+D[ ?!/on#2024-03-22: is now TSV export possible? ]D
+}}}
+
+}}}
+
+- problem02: Calc is unable to filter for color, {{{
+   - clue maybe: https://de.openoffice.info/viewtopic.php?t=63163
+   - more prospective is using Excel - but I do not have Excel!!
+}}}
+
+- col "forrás" and col "további inf." : manage links:{{{
+
+- links are part of cols "forrás" and "további inf." == "tov-inf" cols
+- their nr, their base(host), links themselves should be in a separate cols -
+  they are placed after "..._noting" cols in this order
+
+- useful columns for links, actually done, see "used in" below, "|" explain by
+  pointing code above:
+
+   $ value.find(/http[^ \n]*/).length()  # how many links/cell; used in "_link_nr" cols
+   # |self |->array            |/array
+   #            |own-RE/link, irrespective of its success.  pair of '/' is for RE
+   #                    |because linebreaks were in some cells after a link
+
+      - use Facet/Custom text facet 'value > 0' to filter cells having links for above cols
+
+   $ forEach(value.find(/http[^ \n]*/), v, v.parseUri().parseJson().host).join("|")  # gets the link host, used in "_link_host" cols
+   # |iterates over array                    |->Json-O              |->Json-"host"/URI
+   #                                                                      |sep-char
+
+   $ forEach(value.find(/http[^ ]*/), v, "<"+v+">").join("|")  # lists links enclosed in "<>", sep by "|", but the indexed version:
+   $ forEachIndex(value.find(/http[^ \n]*/), i, v, "("+(i + 1) + ") <" + v + ">").join(" | ")  # ... was recently used in "_link" cols
+   #                                                    |counter written
+
+
+- How check URL functionality??:
+R-code, got from Stackoverflow:
+'''
+urls <-   c("http://www.amazon.com",
+            "http://this.isafakelink.biz",
+            "https://stackoverflow.com")
+
+valid_url <- function(url_in,t=2){
+  con <- url(url_in)
+  check <- suppressWarnings(try(open.connection(con,open="rt",timeout=t),silent=T)[1])
+  suppressWarnings(try(close.connection(con),silent=T))
+  ifelse(is.null(check),TRUE,FALSE)
+}
+'''
+- above did not work with 'host' (parseUri()) only, but did with scheme+host
+
+
+- exported the link-containing cols to: FI#BP100-szupertabla-noquote-xlsx.tsv
+   - strange!: every row is exported...
+   - $1 and $3 are the URL hosts
+   - $2 and $4 are the actual links
+- this is a scrutiny by Awk: the 2nd Awk splits "|"-containing string into
+  array a then prints its values out: $ gawk -F"\t" '{if($1 !~ /^$/) print $1}'
+  '/home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx.tsv' | sort |
+  uniq | gawk '{if($0 ~ /|/) split($0,a,"|") ;for (i in a) print a[i]}' | sort
+  | uniq > tov-inf_link_scheme_host.tsv
+
+- later I only exported 1 col (Custom tabular...), but again, all rows are
+  exported. the above Gawk could be used
+
+> tovInfLinkSchemeHost <- read_lines("tov-inf_link_scheme_host.tsv")
+> sapply(tovInfLinkSchemeHost[31:40], valid_url)  # 31. olx.hu makes us wait forever. !!a timeout option within the custom function
+
+
+> z=2; lst1 <- tovInfLinkSchemeHost[z:108] ;for (i in lst1) {print(i); if(valid_url(i) == FALSE) {print(paste("   above is invalid:", z))}; z=z+1} 
+
+- work not finished yet!!
+
+
+}}}
+
+- col "TÁRGY":{{{
+
+- Introduction{{{
+- on#2024-03-22: ×dant suggested this column to work on. So, this is new - again.
+- mainly O_R work, using History list feature - when not, it is noted in separate fold
+- rather logical than diary mode (dates are barely used
+
+}}}
+- on#2024-03-25: I looked at it outside O_R:{{{
+   -(using an exported TSV file) with Awk:
+   - gawk -F"\t" '{print $14}'
+     'C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv'
+      - eclectic as the many other cols, the top 10: 9 emeletes épület
+	 - there are HÁZ types, e.g. "épület", "ház"
+	 - there may be function? "lakó"
+	 - it has nr "emelet"
+     20 Lakóház
+     24 emeletes ház
+     29 egyemeletes ház
+     34 kétemeletes ház
+     48 földszintes ház
+     50 háromemeletes ház
+     72 ötemeletes ház
+     76 négyemeletes ház
+    123 lakóház
+    238
+   - for the most common, empty, col , the main problem maybe that the TSV has
+     1119 rows, apparently due to in-field linebreaks. Such problem (problem01)
+     had already been solved before. For now, continue with the XLSX in O_R.
+}}}
+
+- Create new column tárgy_noting based on column TÁRGY by filling 885 rows with
+  grel:value; the rest of cells were empty; -> 329 facets; GRAMMAR: new items
+  are between "<" and ">", solely in the new cols of course
+
+- "ház" -> "épület"{{{
+- Text transform on 65 cells in column tárgy_noting:
+  grel:value.replace("épület","<é>")
+   - !!handle multiple többesszám later
+- Fill the empty cells: Text transform on 158 cells in column tárgy_noting:
+  grel:"<é>"   
+   - (épület) serves a general or default type; -> 330 facets
+- "ház" -> "<é>" everywhere - seems risky but I think they are synonymous and
+  recognisable in compound names: Text transform on 662 cells in column
+  tárgy_noting: grel:value.replace("ház", "<é>"); -> 320 facets
+- use Clustering + merging to further reduce complexity: GRAMMAR: "+" denotes
+  more types together, F<...> is function, S<...> is size, a nr followed by "-"
+  can be before it: Mass edit 261 cells in column tárgy_noting; -> 311 facets;
+  the "emelet" idea pursued thereafter to completion with replace() and
+  singular editing because many language-specific expressions e.g.
+  "kétemeletes", "4em". Details in history, can be extracted and rerun in Json!!
+}}}
+
+- GRAMMAR suggestion: W<...> denotes "with, as part of sth"; RE#"'[^']+" proprietary name
+
+- col "tárgy_noting" partitioning to separate size from the rest:{{{
+   - Create new column tárgy_noting3 based on column tárgy_noting by filling 1 043
+     rows with grel:value.replace(/[?\d]-S<[^>]+>/, "")  # col "tárgy_noting" minus
+     "emelet"
+   - Create new column tárgy_height based on column tárgy_noting by filling 1 043
+     rows with grel:forEach(value.find(/([?\d]-S<[^>]+>)/),v,v).join("|")
+      - thus, I parted col "tágy_noting", which col was removed next
+      - now 288 facets
+}}}
+
+- delineating functionality "F<...>" I.{{{
+   - tentative categories like "gyár", "lakó", "nyaraló". 
+      - Later I need to expand and categorize and make hierarchy and define all
+	of these!!
+- on Vilber:
+   - I continued with a copy:
+     C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv
+     :
+	- Text transform on 15 RE#"gyár" but not orig_ln=48 cells in column
+	  tárgy_noting: grel:value.replace(/gyár/, "F<gyár>")
+	- !!later F<gyár> can be characterized further if more data there
+
+- on Zorin:
+- Text transform on 32 cells in column tárgy_noting: grel:value.replace(/lakó/,
+  "F<lakó>")
+- Text transform on 2 cells in column tárgy_noting: grel:value.replace(/Lakó/,
+  "F<lakó>")value
+  - somehow case insensitivity does not work as expected, that is why "Lakó"
+    above; case sensitivity must be checked to make it work!
+- Text transform on 17 cells in column tárgy_noting:
+  grel:value.replace("nyaraló", "F<nyaraló>")
+}}}
+
+- outside O_R work:{{{
+- problem01 again: I noticed on#2024-03-26 that several cols, not just col
+  "tov-inf_noting", see its handling before, have line breaks in them. 
+   - using Awk and Vim, I cleared this issue manually this time, because breaks
+     are in various cols and the previous transaction in O_R was not
+     thorough(why??, surely I did sth wrongly). The line breaks were always
+     unnecessary, anyway, some of them were replaced by " *** " to show the
+     scars, similarly to the earlier method in O_R. The Awk to show bad rows
+     rerun as many times as needed: $ gawk -F"\t" '{if(NF != 28) print NR, NF}'
+     'C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv'
+     | head
+      - in Vim it greatly helped that the last col "orig_ln" has to be equal to
+	the physical col nr.
+      - with Awk I checked the modified table's structure; I deleted the last
+	two empty rows, so there are 1042 rows now in
+	FI#BP100-szupertabla-noquote-xlsx.tsv
+      - the 28 cols as of on#2024-03-27:
+adatmélység
+építés ideje
+hasz.v. eng.
+ép.eng.
+ÉPÍTTETŐ, TULAJDONOS
+KER.
+irszám.
+KO_RABELI UTCA
+házszám
+MAI CÍM
+Google koordináta
+korabeli hrsz
+Mai hrsz.
+TÁRGY	14
+tárgy_height	15
+tárgy_noting3	16
+ÉPÍTÉSZ, ÉPÍTŐMESTER, KŐMŰVESMESTER, ÁCSMESTER, ASZTALOSMESTER
+forrás
+forrás_noting
+forrás_link_nr
+forrás_link_host
+forrás_link
+további inf.
+tov-inf_noting
+tov-inf_link_numbered
+tov-inf_link_scheme-host
+tov-inf_link_nr
+orig_ln
+
+ - the Awk to check, e.g.:
+ $ gawk -F"\t" '{print $14"|"$15"|"$16}' 'C:\Users\palar\OneDrive\today\DS\SzGy\BP100-szupertabla-noquote-xlsx.tsv' | head
+}}}
+
+   - D[ now a TSV is able to replace the former XLSX, so I continue with TSVs, working either inside or outside O_R ]D
+
+-> new O_R project based on former export: BP100 szupertabla noquote xlsx tsv
+
+- O_R work with BP100-szupertabla-noquote-xlsx.tsv:
+   - I accepted several Clustering suggestions -> 279 facets
+
+- handling TÁRGY quantity, more details in Json if exported:{{{
+   - Create column tárgy_qnt at index 16 based on column tárgy_noting3 using
+     expression grel:value.match(/.*(\d) *db.*/)[0]+"-Q<db>"  # this line
+     slightly 
+   - Move column tárgy_noting3 to position 14
+   - Text transform on cells in column tárgy_noting3 using expression
+     grel:value.replace(/\d *db/, "")
+   - Create column trq at index 15 based on column tárgy_noting3 using
+     expression grel:"2--Q<db>"
+   - Text transform on cells in column tárgy_qnt using expression join
+     ([coalesce(cells['tárgy_qnt'].value,''),coalesce(cells['trq'].value,'')],'|')
+   - Remove column trq
+   - Text transform on cells in column tárgy_noting3 using expression
+     grel:value.replace(/>[ae]k/, ">")
+
+Edit single cell on row 884, column tárgy_qnt "Együttes" is plural
+Edit single cell on row 173, column tárgy_qnt "csoport" is plural
+- acc filter RE#"k\b" of col "TÁRGY": I modified to plural:
+   Edit single cell on row 884, column tárgy_qnt
+   Edit single cell on row 173, column tárgy_qnt
+   Edit single cell on row 879, column tárgy_qnt
+   Edit single cell on row 74, column tárgy_qnt
+   Edit single cell on row 180, column tárgy_qnt
+   Edit single cell on row 269, column tárgy_qnt
+   Edit single cell on row 484, column tárgy_qnt
+   Edit single cell on row 632, column tárgy_qnt
+- acc filter RE#"ei\b|ai\b" of col "TÁRGY": I modified to plural:
+  row 632,446 (col "orig_ln" is plus one!)
+
+- could consult KO on plurality!!
+
+
+}}}
+
+- handling proprietary names:{{{
+- because there were many names - they should be extracted somewhere. There can be several names per col "TÁRGY", with or without historical implications.
+- N<> was flagged manually - i.e., cells containing names in some form:
+943, 326, 609, 755, 544, 721, 369, 953, 923, 246, 32, 818, 596, 961, 405, 858, 325, 457, 707, 680, 269, 359, 355, 30, 278, 46, 365, 619, 341, 338, 238, 394, 144, 576, 547, 170, 542, 345, 562, 129, 803, 825, 236, 946, 703, 615, 450, 156, 212, 56, 922, 402, 366, 446, 914, 762, 181, 711, 912, 3, 908, 616, 347, 346, 237, 498, 13, 112, 55, 321, 158, 92, 549, 799, 120, 835, 607, 888, 262, 764, 362, 925, 879, 777, 698, 17, 652, 679, 667, 190, 364, 599, 797, 567, 360, 546, 79, 763, 518, 376, 836, 149, 12, 483, 781, 270, 33, 44, 47, 855, 131, 419, 584, 31, 837, 77, 479, 931, 565, 1041, 886, 598, 814, 717, 563, 329, 302, 230, 198, 29, 685, 367, 765, 395, 157, 506, 216, 962, 78, 618, 495, 43, 165, 60, 349, 856, 892, 968, 699, 528, 397, 392, 606, 515, 514, 182, 54, 481, 608, 624, 884, 245, 11, 533, 876, 494, 449, 720, 725, 726, 719, 373, 500, 522, 387, 244, 336, 963, 610, 
+   --- 179 flags
+
+- I starred those, 59 db, that can be used for N<> notation in a separate col "tárgy_név" as unchanged text of col "TÁRGY"; after filtering for the starred ones:
+   - Create new column tárgy_név based on column TÁRGY by filling 59 rows with grel:"'"+value+"'"
+   
+- unstarred rows for later loadings
+- the rest (flagged + blank col "tárgy_név") of rows were manually edited in col "tárgy_noting3": I manually enclosed names between pairs of "'", so the filter for these and col "tárgy_time-series == false and col "tárgy_noting3" !~ "|" -> 86 rows: are those where proprietary names should be introduced, in quotes, many if needed (separated by ";"), no history implied:
+   - Text transform on 86 cells in column tárgy_név: grel:forEach(cells["tárgy_noting3"].value.find(/('[^']+')/),v,v).join("; ")
+- next, the historcal aspect is indicated by "|", in 34 rows 
+   - Text transform on 34 cells in column tárgy_név: grel:forEach(cells["tárgy_noting3"].value.find(/('[^']+'|\|)/),v,v).join(" ")
+                       |or was key to capture only what I want
+- some cosmetics in col "tárgy_név", mainly regarding string "épület"
+
+- replace <é> with "ház" in col "tárgy_név" to be correct
+   - Text transform on 41 cells in column tárgy_név: grel:value.replace("<é>", "ház")
+- also remove "F?<" ,">" in col "tárgy_név" to be correct
+   - Text transform on 16 cells in column tárgy_név: grel:value.replace(/F?[<>]/, "")
+
+D[ now col "tárgy_név" contains list of proprietary names, each in single quotes, in time order (separator "|") if necessary ]D
+
+- I unflagged the 179 rows.
+
+}}}
+
+- handling time series, i.e., indication of past vs present state. {{{
+   - Create column tárgy_time-series at index 15 based on column tárgy_noting3 using expression grel:value.contains(/\bma\b|volt|most|majd|régen|jelenleg|eredetileg|egykor|Jelenleg|aztán/)
+      - this is a logical col, the words are based on manual classification of words in FI#col16.txt see elsewhere.
+- Create column tárgy_time-series_order at index 16 based on column tárgy_time-series using expression grel:"reverse"
+   - I manually set cells to "fw" where time flows forward, in col "tárgy_noting3":
+- manually replaced words indicating time series in col "tárgy_noting3" with "|" acc pattern before|after|[|lastly]
+
+- still, some cells are more complicated, maybe errors remaining!!
+
+- much later: edit orig_ln=882, 532 because it is historical.
+
+- D[ time series is indicated by a "|" in col "tárgy_noting3" ]D, so
+   - Remove column tárgy_time-series
+   - Remove column tárgy_time-series_order # as it seemed unnecessary.
+
+
+}}}
+
+- col TÁRGY functions again:{{{
+- the "F<>" notation work so far was only preliminary, now the hard work:
+
+- this gets what we have pushed to F<...> so far. Too few:
+$ gawk -F"\t" '{if($16 != "") print $16}' 'C:\Users\palar\Downloads\BP100-szupertabla-noquote-xlsx-tsv-tsv.tsv' | grep -o "F<[^>]\+>" | sort | uniq -c
+ill.
+
+- and this what we have ahead: 687 length>=3 letter words (the 2-letter ones are mostly fragments, some are functional RE#"\b...\b":
+
+Só|J
+id|J
+db	this is quantity - how handle? - done, see "quantity", "tárgy_qnt" folds
+
+- the longer words are these:
+   $ gawk -F"\t" '{if($16 != "") print $16}'  'C:\Users\palar\Downloads\BP100-szupertabla-noquote-xlsx-tsv-tsv.tsv' | grep -o "\w\w\w\+" | sort | uniq -c | sort -n > 'C:\Users\palar\Downloads\col16.txt'
+   - I decorated the FI#"col16.txt" file, manually selecting (adding a field =
+     "F") to those words that are connected to function or contain a part
+     denoting function. In the end, I'd like to have only one functional
+     notation per cell (this opinion may change). Remember, in this col
+     everything is supposed to be a building/house "<é>", but "<é>" itself has
+     neutral functionality:
+$ gawk -F"\t" '{if($0 ~ /\t.*F/) print $1}' 'C:\Users\palar\Downloads\col16.txt'
+   - -- the result (saved in FI#houseCats.tsv) has been further modified by
+     counting the words and adding further fields for categorization. notes:
+     
+nr|term|parent|
+-|-|-|-
+- the 4 fields:
+   - count
+   - term = orig. term
+   - parent = putative parent, use it or not? see contemplations down below
+   - other, transient, notes, important only: M = módosító/modifyer
+
+- the above categorization looks rather personal at second sight, so I try
+  something else:
+- Wiki journey - makes us smarter?{{{
+- plan is to see if I can narrow values to bigger categories
+
+https://www.wikidata.org/wiki/
+Q811979 architectural structure > Q41176 building > Q3947 house
+
+useful property:
+has use (P366)
+
+- commons has categories hierarchy
+https://commons.wikimedia.org/wiki/Category:Buildings_in_Hungary_by_function
+
+
+Wiki query:{{{
+
+SELECT DISTINCT ?has_use ?has_useLabel 
+#?classup ?classupLabel ?classupup ?classupupLabel 
+WHERE {
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  {?haz wdt:P31 wd:Q3947} 
+  union 
+  {?haz wdt:P31 wd:Q41176}
+  union 
+  {?haz wdt:P31 wd:Q811979}
+  ?haz wdt:P366 ?has_use.
+  ?has_use wdt:P279 ?classup.
+#  ?classup wdt:P279 ?classupup.
+}
+order by ?has_useLabel
+LIMIT 1000
+
+- this is to list house and its ups' uses and the uses-ups
+   - 902 has_use
+   - 816 up
+   - 756 up
+
+}}}
+   - D[ as seen in query results, narrowing is not succesful because one class can have several higher classes because it can be viewed by several aspects - and I can not choose just one aspect ]D
+}}}
+- because of Wiki result, I consider to use another system for
+  categorization:
+   - "lakó" and "gazdasági" acc https://www.ksh.hu/teaor_menu here I downloaded
+     an xls TEÁOR’08 Struktúra and converted it to a TSV
+     teaor08_struktura_2018_09_01.csv
+   - however, this can turn out rather arbitrary again, can cause ambiguity in
+     different users
+
+   - on#2024-04-13 new cats from ×dant{{{
+     https://www.ksh.hu/epitmenyjegyzek_menu::
+      - https://www.ksh.hu/docs/osztalyozasok/epitmenyjegyzek/ej_rovid_leiras.pdf
+	 - csak bevezetés
+      - https://www.ksh.hu/docs/osztalyozasok/epitmenyjegyzek/ej_struktura.pdf
+	 - kódok, cats !! lehetne egy hierarchikus fájl belőle!!
+	 - made C:\Users\palar\OneDrive\today\DS\SzGy\ej_struktura.txt on#2024-04-15 14:24zulu  
+	    - van egy kereső https://www.ksh.hu/epitmenyjegyzek_kereso de nem
+	      megy fel és le a fán, csak egyszerű szövegi, már jobb a PDF-ben
+	      is keresni.
+      - https://www.ksh.hu/docs/osztalyozasok/epitmenyjegyzek/ej_tartalom.pdf
+	 - előbbi kódok, cats + magyarázat. 
+      - https://www.ksh.hu/docs/osztalyozasok/epitmenyjegyzek/ej_modszertani_utmutato.pdf
+	 - további segédlet a besoroláshoz. Ebből az derül ki, hogy én nem
+	   tudhatok eleget, mert nem láttam az épületeket. Csak javasolni tudok,
+	   talán ezt sem mindig.
+      - 1995-2000 között sok a besorolási változás. Erre van itt 2 táblázat 
+}}}
+- TARTOK on#2024-04-15! also see ×dant other email, other tables - I commented it with ×KO in and email to ×dant
+- on#2024-04-15 ×dant other email, tables:
+  DIR#C:\Users\palar\OneDrive\today\DS\SzGy\Fwd KÉK-ELTE-Reprex\
+   - az alábbiak csak az épülettípusokra és funkciókra vonatkoznak. Bocs a
+     vegyes nyelvhasználat miatt, alapból angolul jegyzetelek, kifelé magyarul
+     v. angolul, nem szeretem fordítgatni...
+   - scrutiny: from 4 tables, GPS coord, cols resembling a type or function
+     were manually ("copy-paste") collected into a single file
+     "col_fct&type.tsv", then in this file:
+      - GPS and filename serve as unique identifiers.
+      - I found that 2 GPS coords were repeated (not unique, marked as "r" in
+	col "F"), otherwise different
+      - above file was rearranged manually in LibreOfficeCalc. Similar cols
+	were considered same, resulting in colnames:
+	 - GPS
+	 - Korábbi funkció
+	 - Mai funkció
+	 - általános funkció, funkció típus. Ez utóbbi jelent általánosítást,
+	   úgy látom, különböző felfogásban a 4 táblázatban. Tényleg kellene
+	   ide egy közös séma, pl. a Dániel által küldött építményosztályozás.
+      - but one XLSX (BP100_2024_hazak_alapok.xlsx) had more cols:
+	 - Egykori funkció Mai funkció
+	 - Mai általános funkció (lakóház, intézmény, lakatlan)
+	 - Eredeti általános funkció (lakóház, intézmény)
+	 - Lakóépületek típusa/telep
+	      - Ez a fájl jobban szétválasztja a lakó és más épületeket. Ezért
+		2 plusz oszlopot így bent hagytam, itt szélesebb a tábla.
+
+- email I sent on#2024-04-16 to ×KO, ×dant, attaching the col_fct&type.tsv
+
+
+ 
+
+
+
+- I reverted "F<bér>" to "bér" (4 cells), because "bér" is not function, it is
+  a modifier only:
+   Text transform on cells in column tárgy_noting3 using expression
+   grel:value.replace("F<bér>", "bér")
+
+   - on#2024-03-29 08:29zulu in Zorin O_R: RE#"[^<]lakó" does not recognize
+     "lakó" at the beginning of the cell. My fault. It must be referred as
+     RE"^lakó"
+
+- I've done a series (5x) of Facet-Clustering in O_R, only minor changes:
+   - Mass edit cells in column tárgy_noting3
+
+ 
+- F<> notation cont. with extracting functions to separate col(s):{{{
+- new plan: 2 new cols for every function mentioned in a cell, one stating the
+  original, one an upper class function acc teaor08_struktura_2018_09_01.csv.
+  Using Facet feature to remain ordered.
+- starting from "lakó" as these are the most:
+   - Create column tárgy_func1_orig at index 15 based on column tárgy_noting3
+     using expression grel:forEach(value.find(/(F<[^>]+>)/),v,v).join("|")
+   - Text transform on cells in column tárgy_noting3 using expression
+     grel:value.replace(/(F<[^>]+>)/,(""))
+      - as a result, 67% of rows are FINISHED.
+- these only with "lakó" in "col tárgy_noting3":
+   - Text transform on cells in column tárgy_noting3 using expression
+     grel:value.replace("lakó+üzlet", "lakó>F<üzlet")
+      - is reversing an earlier rule about adding "+" a function and get
+	distinct functions
+   - Text transform on cells in column tárgy_func1_orig using expression
+     grel:forEach(cells["tárgy_noting3"].value.find(/(F<l[^>]+>)/),v,v).join("|")
+	- is special, as fills a col from another, keeping old values too
+	  (no need to create a new col); only "F<lakó>" are subjected (use of "l")
+   - Text transform on cells in column tárgy_noting3 using expression
+     grel:value.replace(/(F<l[^>]+>)/,(""))
+        - the corresponding removal of strings trasferred.
+
+- newly I abandoned "F" in F-notation - bad idea? - not really, all are F, actually, what is not?
+
+- to extract F<>-notation to temporary col:
+   - Create column t-f-1 at index 15 based on column tárgy_noting3 using
+     expression
+     grel:forEach(cells["tárgy_noting3"].value.find(/(F?<[^>é]+>)/),v,v).join(",
+     ")
+- the resulting t-f-1 values deleted from noting col:
+   - Text transform on cells in column tárgy_noting3 using expression
+     grel:value.replace(/(F?<[^>é]+>)/,"<é1>")
+- join col "tárgy_func1_orig" with col "t-f-1"
+- Text transform on cells in column tárgy_func1_orig using expression join ([coalesce(cells['tárgy_func1_orig'].value,''),coalesce(cells['t-f-1'].value,'')],', ')
+- Remove column t-f-1
+
+
+   - !cll words that should be enclosed in "<" ">", in FI#houseCats.tsv:
+   - added a 4th col which: 
+      -  if a string: use this string for RE-based search of col
+	 "tárgy_noting3", so it is part of the original term; if "-" do
+	 nothing; if ">" use term itself as RE; ~ we have this string already
+	 (not needed but I did it)
+   - I wrote a derivant file that contains the final RE string parts:
+      $ gawk -F"|" '{if ($4 ~ ">") print tolower($2); else print $4}' '/home/ott.peter/pala/DS/SzGy/houseCats.tsv' | sort | uniq > '/home/ott.peter/pala/DS/SzGy/houseCats2.tsv' 
+   - FI#housCats2 was used to generate the RE expression using Paste GNU
+     Coreutil (https://www.gnu.org/software/coreutils/manual/coreutils.html) command: $ paste -s -d "|" houseCats2.tsv 
+- FI#houseCats2.tsv was later modified heavily, e.g. get the history notation (\|), to give a valid GREL - RE expression and
+  then the O_R:
+Create new column tárgy_f3 based on column tárgy_noting3 by filling 1 041 rows with grel:forEach(value.toLowercase().find(/áru|bank|bíróság|bolt\b|bolthelyiség|boltkapuzat|cukrászda|csarnok|egyetem|erőmű|étterem|fordrász|fotószalon|főisk|fürdő|galéria|garage|gim\b|gimnázium|gyár[aié]*\b|gymnasium|hajóállomás|háza|hivatal|hostel|hotel|internátus|intézet|iroda|\bisk\b|iskola|istálló|kápolna|kaszárnya|kávé|kávézó|kiadó|klinika|klub|kocsiszín|kollégium|kór|könyvtár|központ(ja)*\b|laboratorium|lakás|malátaszárító|malom|mauzóleum|mozi|múzeum|műhely|műter[em][em]|nagykövetség|nyaraló|nyomda|otthon|palace|palota|palotája|pálya|park|parókia|pavillon|piac|raktár|remíz|rendel\b|rendelő|rendőrkapitányság|siló|szálló|szálloda|szerkesztősége|szín|takarékpénztár|technikum|telefonközpont|telep|temp\b|templ\b|templom|tvszék|udvar|üzem|üzlet|\bvár\b|vendéglõ|villa|víztorony|zálog|zsinagóga|plébánia|toldalék|\|/),v,"<"+v+">").join(",")
+
+- because of the problem that replacement in O_R has no switch to ignore case:
+Create new column tárgy_noting3_toLowercase based on column tárgy_noting3 by filling 1 041 rows with grel:value.toLowercase()
+
+Text transform on 229 cells in column tárgy_noting3_toLowercase: grel:value.toLowercase().replace(/.../, "<é2>")
+   - the RE is almost the same as the one before but "\|" is taken out from it to preserve history
+
+- further reduce col "tárgy_noting3_toLowercase" by words common with col "tárgy_név"
+   - this works but not perfect, not implemented: 
+      - value.replace(cells["tárgy_név"].value.split(/ |-/)[0].substring(1).toLowercase(), "")
+   - I checked and I do not need replacing, just delete all text that is not in ("|", between "<" and ">" and not directly precedes "<" (i.e., modifier)):
+   Create new column tárgy_noting3_toLowercase_slim based on column tárgy_noting3_toLowercase by filling 1 041 rows with grel:forEach(value.find(/[\wéáőíóüöúű]*<[^>]+>|\|/),v,v).join(" ")
+
+
+- checking history where there is sth in col "tárgy_func1_orig" that may interfere with historical representation provided by col "tárgy_noting3_toLowercase_slim" and the functional col "tárgy_f3"; it is unnecessarily complicated but the problem is that I cannot save the many individual cell editing operations 
+- 16 such rows, so I created a temporary col that stores what order cols "tárgy_f3" and "tárgy_func1_orig" should be merged.
+Create new column hist_order based on column tárgy_func1_orig by filling 16 rows with grel:"1-3"
+
+- I set the merge order manually, col hist_order:
+row 77,  
+row 244
+row 245
+row 494
+row 506
+row 531
+row 719
+row 793
+- then the merge:
+- 8 cells: "description": "Text transform on cells in column hist_order using expression grel:\"\""
+       - for the col with "1-3" I deleted the value because no change in order of merge for the rest of rows too
+- 443 cells: "description": "Text transform on cells in column tárgy_func1_orig using expression join ([coalesce(cells['tárgy_func1_orig'].value,''),coalesce(cells['tárgy_f3'].value,'')],';')"
+- 7 cells: "description": "Text transform on cells in column tárgy_func1_orig using expression grel:cells[\"tárgy_f3\"].value + \"; \" + value"
+- 1 cell: "description": "Text transform on cells in column tárgy_func1_orig using expression grel:cells[\"tárgy_f3\"].value + \"; \" + value"
+- Edit single cell on row 77, column tárgy_func1_orig
+   # put "palota" to right place
+- "description": "Remove column hist_order"
+- "description": "Remove column tárgy_f3"
+- "description": "Remove column tárgy_noting3_toLowercase"
+- "description": "Rename column tárgy_noting3 to tárgy_noting3_obsolete"
+- 271 cells:"description": "Text transform on cells in column tárgy_func1_orig using expression grel:value.replace(\"F<\", \"<\")"
+   - removed the sign for F-notation
+
+
+- this gets remaining modifier words from col tárgy_noting3_toLowercase_slim :
+$ gawk -F"\t" '{print $16}' '/home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx-tsv(5).tsv' | grep -o '[^ <>]\+' | sort | uniq -c | sort -n
+
+- so some aftermath suggestions:
+<minisztérium> 1 db - manually recovered on#2024-04-23
+"családi" - visszahozni esetleg mint modifier, korábban kihagytam, 3 db
+Text transform on 4 cells in column tárgy_noting3_toLowercase_slim: grel:"családi"+value
+
+
+
+
+}}}
+
+}}}
+
+- at consultation ×dant thoughts:
+how % we are at? minél részletesebben
+anna -> nemz. névtér -> VIAF
+időutazás?? másik mező segítségével?
+
+
+- consult with ×KO on#2024-04-26 after course: discussed arguable future col "targy_cat" items, acc KSH rule. !!wait for her final XLSX file.
+
+- I decided to use SQL to make col "targy_cat" from  ×KO's categorizations. Other choice could have been R, Python but O_R has an "Export/SQL..." feature that is handy, and the ×OK's categorization can be converted to a table serving as a dictionary. So I did the conversion from O_R, only col "TÁRGY" important derivants into FI#BP100-szupertabla-noquote-xlsx-tsv.sql where I made modifications: abbreviated table and col names e.g. like "INSERT INTO BP100 (tnls,tnls2,tfo,tn,th,tq,oln) VALUES". The dbase name is "b100", 
+
+
+
+
+
+
+
+
+
+}}}
+
+RE for standard file names:
+RE#"[a-z_][a-z_0-9-]*\(2024[01][0-9][0-3][0-9]\)[a-z-_]*\.[a-z0-9]\+"
+bp100_ko_mai-cim_20241507.xlsx
+
+
+col "MAI CÍM"{{{
+
+- older details see FI#KO-nak.txt
+
+- on#2024-04-20 11:05zulu : 
+- HIST#671- 
+   - manually edited the 29 flagged rows in col "maicim_noting" - also starring these - and col "maicim_noting 1" to comply with rules.
+   - continued manual editing in col "maicim_noting" "****" means extra info at end of cell or whole cell even. "nem épült meg" and "nincs meg" are not preceded by "****", so put it programmatically
+   - col "maicim_same" contains boolean if col "maicim_noting" differs from orig col "MAI CÍM" 
+
+
+
+- repair "köz" és "u" backward in RE replace cmd!! - not really needed as I did not separate cím constituents. Still I did it, see below
+
+
+- I also made a file from some cols by O_R and used it to extract house types from col "tárgy_func1_orig":
+Lenovo-B50-70% gawk -F"\t" '{print $5}' /home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx-tsv-colSel.tsv|grep -o "<[^>]\+>" | sort | uniq -c > /home/ott.peter/pala/DS/SzGy/BP100-szupertabla-noquote-xlsx-tsv_types.tsv
+- I sent above .tsv to ×KO asking her to try to categorize acc éj_struktura.txt on KeyBase. on#2024-04-20 18:46zulu 
+
+- on#2024-04-21 checking in col "maicim_noting" and its derivants, but mending only in col "maicim_noting" because derivants will be removed and recalculated again and again:
+   - in col "maicim_noting":
+   - " u " -> " utca "
+   - "u." -> "utca"
+   - "krt." -> "körút"
+   - checking arguments:
+   - hiányzó köztér megnevezés in derivant cols using RE#"(árok|lejtő|rkp|útja|\bu\b|sétány|\bsor\b|\btere\b|krt|fasor|köz\b|rakpart|körút|tér|\bút\b|utca\b|\bsziget\b|\bu\b|\bpark\b|\bbástya)"
+   - in derivants : hiányzó szám a köztér után "(árok|lejtő|rkp|útja|\bu\b|sétány|\bsor\b|\btere\b|krt|fasor|köz\b|rakpart|körút|tér|\bút\b|utca\b|\bsziget\b|\bu\b|\bpark\b|\bbástya)( [^\d]+)"
+   - RE"em\."	mod.by "****"
+   - RE"[^\d]\." in derivants
+   - RE"[^\.]$"	nem "."-ra végződő derivants
+   - RE"^[^ ]+ [^ ]+$", RE"^[^ ]+ [^ ]+ [^ ]+ [^ ]+$"	2 szavas, 4 szavas, (1 szavas)
+
+- if above ready, copy col "maicim_noting" to "maicim_noting_copy" then split latter by RE#"--|\*" into max 3 cols
+- trim trailing blanks in derivants
+- in the 2 derivant cols pontot kitenni ill kivenni acc https://e-nyelv.hu/2011-09-06/cimzes-4/
+   - RE#"\d$"
+      - !pontot a végére
+- ez valahogy kevésbé jó {{{
+- RE#"(árok|lejtő|rkp|útja|\bu\b|sétány|\bsor\b|\btere\b|krt|fasor|köz\b|rakpart|körút|tér|\bút\b|utca\b|\bsziget\b|\bu\b|\bpark\b|\bbástya)( \d+)[^\.]$"   
+- obsolete: tried this in col "maicim_noting" but error-prone:
+'
+import re 
+g = re.sub(r"(árok|lejtő|rkp|útja|\bu\b|sétány|\bsor\b|\btere\b|krt|fasor|köz\b|rakpart|körút|tér|\bút\b|utca\b|\bsziget\b|\bu\b|\bpark\b|\bbástya) ([\d]+[^\.])", "\1 \2.", value)
+return g
+'}}}
+
+
+- on#2024-04-22 00:50zulu plan:
+- retain for show:
+
+   - not empty cols "maicim_noting_copy 1,2" with ...3 only if ...3 does begin with "*", but this latter should be askedor be pro-active!!
+   - Text transform on 776+265 cells in column t_n_t_s2: grel:cells["tárgy_noting3_toLowercase_slim"].value.replace(/<[é][12]*>/,"")
+
+
+
+- "sar[o]*k[aá][n]*.", "kereszteződés[e]*" "torkolat[a]*" "határolta" "között" "mentén" when 2 maicim ?: could signify "sarok" in separate col
+
+
+
+
+
+}}}
+
+
+
+
+- ?!:{{{
+   - I may need handle multiple URIs within one cell, 
+      - so may get all links into a different row - this is a direction RDBMS...
+
+}}}
+
+- Technical notes O_R:{{{
+   - arrays look good in preview but nothing in the resulting column! SOLUTION: arrays are not printed into cells, only their indexed elements
+   - useful GREL:
+      - value + cells["col_one"].value  # refer to other column
+
+
+useful GRELs:
+cells["tárgy_size"].value
+
+
+- in O_R this works to extract types but looks ugly and I struggle with using capturing groups:
+"<"+value.match(/(.*)(iskola|üzlet|gyár\b|nyaraló|villa|palota)(.*)/)[1]+">"
+
+
+- Python/Jython use is wrong in O_R help, a correct thing is separate lines, no indent, good for ×KO e.g.:
+"
+import re 
+g = re.search(r"(.*\d *)--( *\d.*)", value) 
+return g.group(1)+"-"+g.group(2)
+"
+
+
+
+
+
+
+}}}
+
+History of O_R:
+on#2024-04-09 copied all text (Ctrl-a) from older table project and the current project to the FI#/home/ott.peter/pala/DS/SzGy/all_hist_copypaste_20240409.txt" the edited parts of it - it contains redundancies, e.g. "Extract operation history" is completely redundant, so I deleted them
+- on#2024-04-19 I added to above file what happened since.
+
+
+- after talk in CEU wth ×dant and colleagues:
+   - ! provide table that is flawless, can be smaller, but backtraceable to original.
+   - plan: have the modified cols that are without error where values are nonproblematic
+      - send /home/ott.peter/pala/DS/SzGy/ej_struktura.txt to ×KO, along with other list of col tárgy and metadata
+      - clean maicim
+      - set
+- plan of final, clean table to hand over:
+- for reporting, !! see FI#naplo_SzGy-hez-magyarsummary.md
+
+
+on#2024-05-03
+- package collected-prepared for Reprex, with FI#naplo_SzGy-hez-magyarsummary.md as main guide.
+
+
